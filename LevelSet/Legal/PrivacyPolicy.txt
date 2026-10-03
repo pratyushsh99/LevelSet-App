@@ -1,3 +1,44 @@
 Privacy Policy
 
-[Placeholder — replace this with your actual privacy policy before shipping to TestFlight or the App Store. LevelSet links to this file from onboarding so the agreement step is real, but the content below is intentionally blank.]
+Effective date: October 3, 2026
+
+This policy explains what information LevelSet collects and how it's used. It covers the LevelSet iPhone app, the LevelSet web dashboard and the LevelSet Chrome extension.
+
+1. The short version
+LevelSet has no accounts, no ads and no analytics or tracking. Camera video never leaves your phone. Unless you choose to link a computer, everything stays on your device.
+
+2. Camera
+LevelSet uses your front camera only while you're doing a movement challenge. Video is analyzed on your phone with Apple's Vision framework to count reps and check your form. Video and images are never recorded, saved or uploaded.
+
+3. Information stored on your phone
+LevelSet stores the following on your device: your name (if you enter one), daily screen-time limit, remaining time, XP, streak, challenge history, theme, the names of apps you chose to limit, and your notification preference.
+
+4. Information shared when you link a computer
+Linking a computer is optional. If you do it, LevelSet sends the following to its web service, which is hosted on Vercel and stores data in a Supabase database:
+- a random device id created by the app (not your name, email or Apple ID)
+- your remaining screen-time balance
+- your XP, streak and challenge history
+- your app settings, including your name if you entered one and the names of apps you chose to limit
+- the website domains you choose to restrict on your computer
+
+The Chrome extension sends only your device id and the time spent on restricted sites. It does not record your browsing history or the pages you visit.
+
+5. How information is used
+Linked information is used only to sync your screen-time balance and progress between your phone and your computer. It is never sold, shared for advertising, or used for any other purpose.
+
+6. Security
+Only the LevelSet server can access the database. Your phone, browser and extension never hold a database key, and all connections use HTTPS. No system is perfectly secure, so keep your device id private.
+
+7. Deleting your information
+Deleting your account in the app's Profile screen removes your data from your phone. To delete the linked copy stored on the web service, email pratyushksharma99@gmail.com with your device id, shown on the Link Desktop screen in the app, and it will be removed.
+
+8. Children
+LevelSet is not directed at children under 13, and it does not knowingly collect personal information from them. If you believe a child under 13 has linked a computer, contact the email below and the linked data will be deleted.
+
+9. Changes to this policy
+This policy may be updated from time to time. The effective date above will show when it last changed.
+
+10. Contact
+Questions about privacy: pratyushksharma99@gmail.com
+
+Copyright (c) 2026 pratyushsh99. All rights reserved. The LevelSet source code is available under the MIT License, and any copy or distribution of it must include this copyright notice.

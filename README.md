@@ -57,4 +57,6 @@ See [`SECURITY.md`](SECURITY.md) for how to report a vulnerability.
 
 ## License
 
-[MIT](LICENSE)
+LevelSet is Copyright (c) 2026 pratyushsh99 and released under the [MIT License](LICENSE).
+
+If you use, modify or redistribute this project, or any substantial part of it, you must keep the copyright notice and include the full MIT License text in every copy, including in the documentation of any app, website or product built from it. See the [Terms of Service](LevelSet/Legal/TermsOfService.txt) and [Privacy Policy](LevelSet/Legal/PrivacyPolicy.txt).

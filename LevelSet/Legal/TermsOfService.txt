@@ -1,3 +1,40 @@
 Terms of Service
 
-[Placeholder — replace this with your actual terms of service before shipping to TestFlight or the App Store. LevelSet links to this file from onboarding so the agreement step is real, but the content below is intentionally blank.]
+Effective date: October 3, 2026
+
+These terms apply to the LevelSet iPhone app, the LevelSet web dashboard and the LevelSet Chrome extension (together, "LevelSet"). By using LevelSet, you agree to these terms. If you don't agree, please don't use it.
+
+1. What LevelSet does
+LevelSet helps you manage your screen time. You get a daily time budget, and you can earn more time by completing physical challenges, such as push-ups counted by your phone's camera. If you link a computer, the web dashboard and Chrome extension spend your earned time on websites you choose to restrict.
+
+2. Your health and safety
+LevelSet is not a medical or fitness service. Exercise carries a risk of injury. Only do challenges that are safe for you, stop if you feel pain or discomfort, and talk to a doctor if you have any health concerns. Rep counts and form feedback are estimates and may not always be accurate. You use LevelSet at your own risk.
+
+3. Using LevelSet responsibly
+You agree not to misuse LevelSet. That includes trying to access another person's data, interfering with the web service, sending automated or excessive requests to it, or using it for anything illegal.
+
+4. Your device id
+When you link a computer, LevelSet uses a random device id to connect your phone, the dashboard and the extension. Keep it private. Anyone with your device id can see and spend your linked screen-time balance.
+
+5. Copyright and attribution
+LevelSet, including its source code, design, icons and artwork, is Copyright (c) 2026 pratyushsh99. All rights not expressly granted are reserved.
+
+The LevelSet source code is published under the MIT License at https://github.com/pratyushsh99/LevelSet-App. You may use, copy, modify and distribute it under that license, on one condition: anyone who copies, modifies, publishes or distributes LevelSet, or any substantial portion of it, must include the following notice:
+
+    Copyright (c) 2026 pratyushsh99
+
+together with the full text of the MIT License, in every copy and in the documentation of any app, website or product built from it. Removing or hiding this notice is not allowed.
+
+6. No warranty
+LevelSet is provided "as is", without warranties of any kind. It may contain bugs, be unavailable at times, or change without notice. LevelSet is not affiliated with or endorsed by Apple or Google.
+
+7. Limitation of liability
+To the fullest extent allowed by law, the creator of LevelSet is not liable for any damages arising from your use of LevelSet, including injury, lost data or lost screen time.
+
+8. Changes to these terms
+These terms may be updated from time to time. The effective date above will show when they last changed. Continuing to use LevelSet after a change means you accept the updated terms.
+
+9. Contact
+Questions about these terms: pratyushksharma99@gmail.com
+
+Copyright (c) 2026 pratyushsh99. Released under the MIT License.
