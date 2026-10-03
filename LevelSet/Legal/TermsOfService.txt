@@ -1,0 +1,3 @@
+Terms of Service
+
+[Placeholder — replace this with your actual terms of service before shipping to TestFlight or the App Store. LevelSet links to this file from onboarding so the agreement step is real, but the content below is intentionally blank.]

@@ -1,0 +1,15 @@
+.DS_Store
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
+DerivedData/
+.build/
+*.ipa
+*.dSYM.zip
+*.dSYM
+.env
+.env.*
+!.env.example
+node_modules/
+.next/
+.vercel

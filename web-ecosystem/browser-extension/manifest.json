@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "LevelSet Screen Time Guard",
+  "version": "1.0.0",
+  "description": "Blocks restricted websites once your LevelSet earned screen-time balance runs out.",
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "permissions": ["tabs", "storage", "alarms"],
+  "host_permissions": [
+    "https://level-set-zeta.vercel.app/*"
+  ],
+  "action": {
+    "default_title": "LevelSet Screen Time Guard"
+  },
+  "options_page": "options.html"
+}

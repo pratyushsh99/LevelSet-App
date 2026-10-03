@@ -1,0 +1,31 @@
+import SwiftUI
+import AVFoundation
+
+struct CameraPreviewView: UIViewRepresentable {
+    let session: AVCaptureSession
+
+    func makeUIView(context: Context) -> PreviewUIView {
+        let view = PreviewUIView()
+        view.videoPreviewLayer.session = session
+        view.videoPreviewLayer.videoGravity = .resizeAspectFill
+        if let connection = view.videoPreviewLayer.connection {
+            connection.automaticallyAdjustsVideoMirroring = false
+            connection.isVideoMirrored = true
+            if connection.isVideoRotationAngleSupported(90) {
+                connection.videoRotationAngle = 90
+            }
+        }
+        return view
+    }
+
+    func updateUIView(_ uiView: PreviewUIView, context: Context) {
+        uiView.videoPreviewLayer.session = session
+    }
+
+    final class PreviewUIView: UIView {
+        override class var layerClass: AnyClass { AVCaptureVideoPreviewLayer.self }
+        var videoPreviewLayer: AVCaptureVideoPreviewLayer {
+            layer as! AVCaptureVideoPreviewLayer
+        }
+    }
+}
