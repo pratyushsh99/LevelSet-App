@@ -8,6 +8,7 @@ struct ProfileView: View {
     @State private var showAppSelection = false
     @State private var showDailyLimitPicker = false
     @State private var showLinkDesktop = false
+    @State private var showPushUpRecorder = false
     @State private var debugXPInput = ""
     @ObservedObject private var iconService = AppIconService.shared
 
@@ -68,6 +69,9 @@ struct ProfileView: View {
                 LinkDesktopView {
                     DesktopSyncService.syncBalance(secondsRemaining: progress.secondsRemaining())
                 }
+            }
+            .fullScreenCover(isPresented: $showPushUpRecorder) {
+                PushUpTrainingRecorderView()
             }
         }
     }
@@ -320,6 +324,16 @@ struct ProfileView: View {
                         .foregroundStyle(Theme.textFaint)
                         .fixedSize(horizontal: false, vertical: true)
                 }
+
+                #if DEBUG
+                HStack {
+                    Text("Push-up training data").font(Theme.body(14)).foregroundStyle(Theme.text)
+                    Spacer()
+                    Button("Record") { showPushUpRecorder = true }
+                        .font(Theme.body(13, .semibold))
+                        .foregroundStyle(Theme.accent)
+                }
+                #endif
             }
             .padding(14)
             .card(padding: 0)

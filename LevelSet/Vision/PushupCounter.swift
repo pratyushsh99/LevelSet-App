@@ -67,11 +67,11 @@ final class PushupCounter: ObservableObject {
 
     private func makeFrameHandler() -> CameraStreamManager.FrameHandler {
         let detector = detector
-        let classifier = PushUpClassifier()
+        let classifier: PushUpRepTracking = PushUpModelClassifier.bundled() ?? PushUpClassifier()
         return { [weak self] pixelBuffer, orientation in
             guard let self else { return }
             let frame = detector.detect(in: pixelBuffer, orientation: orientation)
-            let reading = classifier.process(frame)
+            let reading = classifier.process(frame, at: .now)
             DispatchQueue.main.async {
                 MainActor.assumeIsolated { self.apply(reading, frame: frame) }
             }

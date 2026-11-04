@@ -13,3 +13,6 @@ DerivedData/
 node_modules/
 .next/
 .vercel
+
+# Push-up training recordings contain body pose data from real people
+Training/data/

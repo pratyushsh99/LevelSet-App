@@ -11,7 +11,8 @@ extension spend your earned time on the websites you choose to restrict.
 ## Features
 
 - **Camera-verified challenges.** Push-ups, jumping jacks, wall sits and
-  planks are tracked on device with Apple's Vision framework. Reps only count
+  planks are tracked on device with Apple's Vision framework. Push-ups are
+  validated by Core ML models trained on recorded pose data. Reps only count
   after a full range of motion with good form. Video never leaves the phone.
 - **Daily time budget** with streaks, XP, adaptive difficulty and four
   unlockable themes that also change the app icon.
@@ -27,6 +28,7 @@ extension spend your earned time on the websites you choose to restrict.
 | `LevelSet/` | iOS app (Swift, SwiftUI, AVFoundation, Vision) |
 | `LevelSetWidgets/` | Lock Screen and Live Activity widgets |
 | `Shared/` | Code shared by the app and the widgets |
+| `Training/` | Push-up model trainer and recording guide, see [`Training/README.md`](Training/README.md) |
 | `project.yml` | XcodeGen project definition |
 | `web-ecosystem/nextjs-dashboard/` | Next.js dashboard and API, deployed on Vercel |
 | `web-ecosystem/browser-extension/` | Chrome extension (Manifest V3) |
