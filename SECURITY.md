@@ -9,8 +9,14 @@ expect. You'll get a reply as soon as possible.
 
 ## Design notes
 
-- The iOS app's device id is the credential for the web API. Treat it like a
-  password: anyone who has it can read and spend that profile's balance.
+- Each linked device authenticates with its own random bearer token. The
+  server stores only a SHA-256 hash, and each token is limited by kind:
+  only the phone's token can add time or delete the account. Browser
+  tokens can read status, spend time and edit blocked sites.
+- The phone's token is kept in the iOS Keychain
+  (`AfterFirstUnlockThisDeviceOnly`) and is never displayed or copied.
+- Deleting the account in the app deletes the server-side profile and
+  revokes every linked device.
 - Only the Next.js server holds the Supabase service-role key. The iOS app,
   the dashboard in the browser, and the Chrome extension never receive a
   database key.

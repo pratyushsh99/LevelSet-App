@@ -3,30 +3,26 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
+import { TOKEN_STORAGE_KEY } from '../../lib/clientAuth';
 
 const POLL_INTERVAL_MS = 2000;
 
 export default function PairPage() {
   const router = useRouter();
-  const [profileId, setProfileId] = useState(null);
-  const [pairingCode, setPairingCode] = useState(null);
-  const [expiresAt, setExpiresAt] = useState(null);
+  const [session, setSession] = useState(null);
   const [error, setError] = useState(null);
-  const [linkedUserId, setLinkedUserId] = useState(null);
+  const [linkedToken, setLinkedToken] = useState(null);
   const [copied, setCopied] = useState(false);
   const pollTimer = useRef(null);
 
   const generateCode = useCallback(async () => {
     setError(null);
-    setLinkedUserId(null);
-    setPairingCode(null);
+    setLinkedToken(null);
+    setSession(null);
     try {
       const res = await fetch('/api/pair', { method: 'POST' });
       if (!res.ok) throw new Error('Request failed');
-      const data = await res.json();
-      setProfileId(data.profileId);
-      setPairingCode(data.pairingCode);
-      setExpiresAt(data.expiresAt);
+      setSession(await res.json());
     } catch (err) {
       setError('Could not generate a pairing code. Please try again.');
     }
@@ -37,37 +33,48 @@ export default function PairPage() {
   }, [generateCode]);
 
   useEffect(() => {
-    if (!profileId) return undefined;
+    if (!session) return undefined;
 
     async function poll() {
       try {
-        const res = await fetch(`/api/pair/status?profileId=${encodeURIComponent(profileId)}`);
+        const res = await fetch('/api/pair/status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.pollSecret}`,
+          },
+          body: JSON.stringify({ sessionId: session.sessionId }),
+        });
         const data = await res.json();
-        if (data.paired && data.userId) {
-          window.localStorage.setItem('levelset_user_id', data.userId);
-          setLinkedUserId(data.userId);
+        if (data.paired && data.token) {
           clearInterval(pollTimer.current);
+          window.localStorage.setItem(TOKEN_STORAGE_KEY, data.token);
+          window.localStorage.removeItem('levelset_user_id');
+          setLinkedToken(data.token);
+        } else if (data.gone) {
+          clearInterval(pollTimer.current);
+          setSession(null);
+          setError('This pairing code expired. Generate a new one.');
         }
       } catch {
-
       }
     }
 
     pollTimer.current = setInterval(poll, POLL_INTERVAL_MS);
     return () => clearInterval(pollTimer.current);
-  }, [profileId]);
+  }, [session]);
 
-  const qrValue = pairingCode
-    ? JSON.stringify({ type: 'levelset-pairing', code: pairingCode })
+  const qrValue = session
+    ? JSON.stringify({ type: 'levelset-pairing', v: 2, secret: session.qrSecret })
     : '';
 
-  function copyDeviceId() {
-    navigator.clipboard.writeText(linkedUserId);
+  async function copyExtensionKey() {
+    await navigator.clipboard.writeText(linkedToken);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
 
-  if (linkedUserId) {
+  if (linkedToken) {
     return (
       <main style={styles.main}>
         <div style={styles.card}>
@@ -83,11 +90,13 @@ export default function PairPage() {
 
           <div style={styles.deviceIdBox}>
             <p style={styles.codeLabel}>
-              To finish setting up the browser extension, paste this device id
-              into its options page:
+              Using the browser extension? Copy this browser's key and paste it
+              into the extension's options page. Keep it private: it can spend
+              your earned time and edit your blocked sites, but it can't add
+              time.
             </p>
-            <button style={styles.deviceIdButton} onClick={copyDeviceId}>
-              {linkedUserId}
+            <button style={styles.deviceIdButton} onClick={copyExtensionKey}>
+              Copy extension key
             </button>
             {copied && <p style={styles.copiedNote}>Copied!</p>}
           </div>
@@ -106,7 +115,7 @@ export default function PairPage() {
         </p>
 
         <div style={styles.qrBox}>
-          {pairingCode ? (
+          {session ? (
             <QRCodeSVG value={qrValue} size={220} includeMargin />
           ) : error ? (
             <p style={styles.error}>{error}</p>
@@ -115,12 +124,10 @@ export default function PairPage() {
           )}
         </div>
 
-        {pairingCode && (
+        {session && (
           <>
-            <p style={styles.codeLabel}>Or enter this code manually:</p>
-            <p style={styles.code}>{pairingCode}</p>
             <p style={styles.expiry}>
-              Expires at {new Date(expiresAt).toLocaleTimeString()}
+              Expires at {new Date(session.expiresAt).toLocaleTimeString()}
             </p>
             <p style={styles.waiting}>Waiting for your phone to scan…</p>
           </>
@@ -166,8 +173,7 @@ const styles = {
     minHeight: 260,
   },
   codeLabel: { marginTop: 20, fontSize: 13, color: '#a3a7b0' },
-  code: { fontSize: 28, letterSpacing: 4, fontWeight: 700, margin: '4px 0' },
-  expiry: { fontSize: 12, color: '#6b6f78' },
+  expiry: { marginTop: 16, fontSize: 12, color: '#6b6f78' },
   waiting: { fontSize: 13, color: '#8a8fa3', marginTop: 16 },
   error: { color: '#ff6b6b' },
   primaryButton: {
@@ -200,8 +206,7 @@ const styles = {
     background: '#0f1116',
     color: '#6ea8fe',
     fontSize: 13,
-    fontFamily: 'ui-monospace, monospace',
-    textAlign: 'left',
+    textAlign: 'center',
     cursor: 'pointer',
     overflowWrap: 'anywhere',
   },

@@ -9,9 +9,9 @@ import {
 let deductTimerId = null;
 let activeRestrictedTabId = null;
 
-async function getUserId() {
-  const { userId } = await chrome.storage.local.get('userId');
-  return userId || null;
+async function getToken() {
+  const { deviceToken } = await chrome.storage.local.get('deviceToken');
+  return deviceToken || null;
 }
 
 async function getCachedStatus() {
@@ -23,17 +23,19 @@ async function setCachedStatus(status) {
   await chrome.storage.local.set({ status });
 }
 
-async function fetchStatus(userId) {
-  const res = await fetch(`${API_BASE_URL}/api/status?userId=${encodeURIComponent(userId)}`);
+async function fetchStatus(token) {
+  const res = await fetch(`${API_BASE_URL}/api/status`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   if (!res.ok) throw new Error(`Status fetch failed: ${res.status}`);
   return res.json();
 }
 
-async function deductTime(userId, seconds = 5) {
+async function deductTime(token, seconds = 5) {
   const res = await fetch(`${API_BASE_URL}/api/deduct-time`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId, seconds }),
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ seconds }),
   });
   if (!res.ok) throw new Error(`Deduct-time failed: ${res.status}`);
   return res.json();
@@ -44,6 +46,14 @@ function extractDomain(url) {
     return new URL(url).hostname.replace(/^www\./, '');
   } catch {
     return null;
+  }
+}
+
+function isOwnSite(url) {
+  try {
+    return new URL(url).origin === new URL(API_BASE_URL).origin;
+  } catch {
+    return false;
   }
 }
 
@@ -79,14 +89,14 @@ function startDeductTimer(tabId) {
   activeRestrictedTabId = tabId;
 
   deductTimerId = setInterval(async () => {
-    const userId = await getUserId();
-    if (!userId) {
+    const token = await getToken();
+    if (!token) {
       stopDeductTimer();
       return;
     }
 
     try {
-      const { remainingSeconds, locked } = await deductTime(userId, 5);
+      const { remainingSeconds, locked } = await deductTime(token, 5);
       await setCachedStatus({ ...(await getCachedStatus()), remainingSeconds });
 
       if (locked) {
@@ -100,22 +110,22 @@ function startDeductTimer(tabId) {
 }
 
 async function evaluateTab(tabId, url) {
-  const userId = await getUserId();
-  if (!userId || !url) {
+  const token = await getToken();
+  if (!token || !url) {
     stopDeductTimer();
     return;
   }
 
   const domain = extractDomain(url);
 
-  if (!domain || url.startsWith(API_BASE_URL)) {
+  if (!domain || isOwnSite(url)) {
     stopDeductTimer();
     return;
   }
 
   let status;
   try {
-    status = await fetchStatus(userId);
+    status = await fetchStatus(token);
     await setCachedStatus(status);
   } catch (err) {
     console.error('Failed to refresh status:', err);

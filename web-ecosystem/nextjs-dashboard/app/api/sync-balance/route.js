@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server';
+import { requireDevice } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabaseAdmin';
-import { badRequest, INVALID_USER_ID, isValidUserId, MAX_BALANCE_SECONDS, readJson } from '../../../lib/validate';
+import { badRequest, INVALID_JSON, MAX_BALANCE_SECONDS, readJson } from '../../../lib/validate';
 
 export async function POST(request) {
-  const body = await readJson(request);
-  if (!body) return badRequest('Invalid JSON body.');
+  const { device, error: authError } = await requireDevice(request, 'balance:write');
+  if (authError) return authError;
 
-  const { userId, remainingSeconds } = body;
-  if (!isValidUserId(userId)) return badRequest(INVALID_USER_ID);
+  const body = await readJson(request);
+  if (!body) return badRequest(INVALID_JSON);
+
+  const { remainingSeconds } = body;
   if (typeof remainingSeconds !== 'number' || !Number.isFinite(remainingSeconds) || remainingSeconds < 0) {
     return badRequest('remainingSeconds must be a non-negative number.');
   }
@@ -15,7 +18,7 @@ export async function POST(request) {
   const { data, error } = await supabaseAdmin
     .from('profiles')
     .update({ remaining_seconds: Math.min(MAX_BALANCE_SECONDS, Math.floor(remainingSeconds)) })
-    .ilike('user_id', userId)
+    .eq('id', device.profileId)
     .select('id');
 
   if (error) {

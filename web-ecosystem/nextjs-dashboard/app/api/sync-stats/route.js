@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server';
+import { requireDevice } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabaseAdmin';
-import { badRequest, INVALID_USER_ID, isBoundedInteger, isValidUserId, MAX_STATS_BYTES, readJson } from '../../../lib/validate';
+import { badRequest, INVALID_JSON, isBoundedInteger, MAX_STATS_BYTES, readJson } from '../../../lib/validate';
 
 export async function POST(request) {
-  const body = await readJson(request);
-  if (!body) return badRequest('Invalid JSON body.');
+  const { device, error: authError } = await requireDevice(request, 'stats:write');
+  if (authError) return authError;
 
-  const { userId, xp, currentStreak, progress, history } = body;
-  if (!isValidUserId(userId)) return badRequest(INVALID_USER_ID);
+  const body = await readJson(request);
+  if (!body) return badRequest(INVALID_JSON);
+
+  const { xp, currentStreak, progress, history } = body;
   if (!isBoundedInteger(xp, 0, 1_000_000_000) || !isBoundedInteger(currentStreak, 0, 100_000)) {
     return badRequest('xp and currentStreak must be non-negative whole numbers.');
   }
@@ -26,7 +29,7 @@ export async function POST(request) {
   const { data, error } = await supabaseAdmin
     .from('profiles')
     .update({ xp, current_streak: currentStreak, stats })
-    .ilike('user_id', userId)
+    .eq('id', device.profileId)
     .select('id');
 
   if (error) {

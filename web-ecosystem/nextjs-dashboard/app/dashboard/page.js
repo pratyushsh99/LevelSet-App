@@ -1,29 +1,35 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-
-const STORAGE_KEY = 'levelset_user_id';
+import Link from 'next/link';
+import { authFetch, clearStoredToken, readStoredToken } from '../../lib/clientAuth';
 
 export default function DashboardPage() {
-  const [userId, setUserId] = useState(null);
-  const [userIdInput, setUserIdInput] = useState('');
+  const [token, setToken] = useState(null);
+  const [hasCheckedStorage, setHasCheckedStorage] = useState(false);
   const [status, setStatus] = useState(null);
   const [domainInput, setDomainInput] = useState('');
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (stored) setUserId(stored);
+    setToken(readStoredToken());
+    setHasCheckedStorage(true);
   }, []);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!token) return;
     refresh();
 
     const interval = setInterval(() => refresh({ silent: true }), 5000);
     return () => clearInterval(interval);
-  }, [userId]);
+  }, [token]);
+
+  function signOutLocally() {
+    clearStoredToken();
+    setToken(null);
+    setStatus(null);
+  }
 
   async function refresh({ silent = false } = {}) {
     if (!silent) {
@@ -32,12 +38,16 @@ export default function DashboardPage() {
     }
     try {
       const [statusRes, sitesRes] = await Promise.all([
-        fetch(`/api/status?userId=${encodeURIComponent(userId)}`),
-        fetch(`/api/blocked-websites?userId=${encodeURIComponent(userId)}`),
+        authFetch(token, '/api/status'),
+        authFetch(token, '/api/blocked-websites'),
       ]);
 
+      if (statusRes.status === 401 || sitesRes.status === 401) {
+        signOutLocally();
+        return;
+      }
       if (!statusRes.ok || !sitesRes.ok) {
-        throw new Error('Profile not found.');
+        throw new Error('Request failed.');
       }
 
       const statusData = await statusRes.json();
@@ -45,9 +55,8 @@ export default function DashboardPage() {
       setStatus({ ...statusData, blockedWebsites: sitesData.blockedWebsites });
       if (!silent) setError(null);
     } catch (err) {
-
       if (!silent) {
-        setError("Couldn't find a profile for that id. Check it and try again.");
+        setError("Couldn't load your balance. Try again in a moment.");
         setStatus(null);
       }
     } finally {
@@ -55,18 +64,12 @@ export default function DashboardPage() {
     }
   }
 
-  function handleUseUserId(e) {
-    e.preventDefault();
-    const trimmed = userIdInput.trim();
-    if (!trimmed) return;
-    window.localStorage.setItem(STORAGE_KEY, trimmed);
-    setUserId(trimmed);
-  }
-
-  function handleForget() {
-    window.localStorage.removeItem(STORAGE_KEY);
-    setUserId(null);
-    setStatus(null);
+  async function handleUnlink() {
+    try {
+      await authFetch(token, '/api/token', { method: 'DELETE' });
+    } catch {
+    }
+    signOutLocally();
   }
 
   async function handleAddDomain(e) {
@@ -74,10 +77,9 @@ export default function DashboardPage() {
     const domain = domainInput.trim();
     if (!domain) return;
 
-    const res = await fetch('/api/blocked-websites', {
+    const res = await authFetch(token, '/api/blocked-websites', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, domain }),
+      body: { domain },
     });
     if (res.ok) {
       setDomainInput('');
@@ -86,34 +88,27 @@ export default function DashboardPage() {
   }
 
   async function handleRemoveDomain(domain) {
-    const res = await fetch('/api/blocked-websites', {
+    const res = await authFetch(token, '/api/blocked-websites', {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, domain }),
+      body: { domain },
     });
     if (res.ok) refresh();
   }
 
-  if (!userId) {
+  if (!hasCheckedStorage) return null;
+
+  if (!token) {
     return (
       <main style={styles.main}>
         <div style={styles.card}>
           <h1 style={styles.heading}>Dashboard</h1>
           <p style={styles.subheading}>
-            Enter the device id from your phone (Profile → Link Desktop) or the
-            one this browser got after scanning /pair.
+            This browser isn't linked yet. Open the pairing page and scan its QR
+            code from the LevelSet app (Profile → Link Desktop).
           </p>
-          <form onSubmit={handleUseUserId} style={styles.row}>
-            <input
-              style={styles.input}
-              placeholder="Device id"
-              value={userIdInput}
-              onChange={(e) => setUserIdInput(e.target.value)}
-            />
-            <button style={styles.primaryButton} type="submit">
-              Load
-            </button>
-          </form>
+          <Link href="/pair" style={styles.primaryLink}>
+            Link this browser
+          </Link>
         </div>
       </main>
     );
@@ -124,8 +119,8 @@ export default function DashboardPage() {
       <div style={styles.card}>
         <div style={styles.headerRow}>
           <h1 style={styles.heading}>Dashboard</h1>
-          <button style={styles.textButton} onClick={handleForget}>
-            Switch device
+          <button style={styles.textButton} onClick={handleUnlink}>
+            Unlink this browser
           </button>
         </div>
 
@@ -233,6 +228,16 @@ const styles = {
     fontWeight: 600,
     fontSize: 14,
     cursor: 'pointer',
+  },
+  primaryLink: {
+    display: 'inline-block',
+    padding: '10px 18px',
+    borderRadius: 8,
+    background: '#6ea8fe',
+    color: '#0b0c10',
+    fontWeight: 600,
+    fontSize: 14,
+    textDecoration: 'none',
   },
   textButton: {
     background: 'none',

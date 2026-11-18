@@ -1,42 +1,24 @@
 import { NextResponse } from 'next/server';
+import { requireDevice } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabaseAdmin';
-import {
-  badRequest,
-  INVALID_USER_ID,
-  isValidUserId,
-  MAX_BLOCKED_SITES,
-  normalizeDomain,
-  readJson,
-} from '../../../lib/validate';
+import { badRequest, INVALID_JSON, MAX_BLOCKED_SITES, normalizeDomain, readJson } from '../../../lib/validate';
 
-async function findProfile(userId) {
-  return supabaseAdmin.from('profiles').select('id').ilike('user_id', userId).single();
-}
-
-function profileNotFound() {
-  return NextResponse.json({ error: 'Profile not found.' }, { status: 404 });
-}
-
-async function readMutation(request) {
+async function readDomain(request) {
   const body = await readJson(request);
-  if (!body) return { error: badRequest('Invalid JSON body.') };
-  if (!isValidUserId(body.userId)) return { error: badRequest(INVALID_USER_ID) };
+  if (!body) return { error: badRequest(INVALID_JSON) };
   const domain = normalizeDomain(body.domain);
   if (!domain) return { error: badRequest('domain must be a valid website domain, like youtube.com.') };
-  return { userId: body.userId, domain };
+  return { domain };
 }
 
 export async function GET(request) {
-  const userId = new URL(request.url).searchParams.get('userId');
-  if (!isValidUserId(userId)) return badRequest(INVALID_USER_ID);
-
-  const { data: profile, error: profileError } = await findProfile(userId);
-  if (profileError || !profile) return profileNotFound();
+  const { device, error: authError } = await requireDevice(request, 'status:read');
+  if (authError) return authError;
 
   const { data: sites, error: sitesError } = await supabaseAdmin
     .from('blocked_websites')
     .select('id, domain')
-    .eq('profile_id', profile.id)
+    .eq('profile_id', device.profileId)
     .order('domain');
 
   if (sitesError) {
@@ -48,16 +30,16 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const { error, userId, domain } = await readMutation(request);
-  if (error) return error;
+  const { device, error: authError } = await requireDevice(request, 'sites:write');
+  if (authError) return authError;
 
-  const { data: profile, error: profileError } = await findProfile(userId);
-  if (profileError || !profile) return profileNotFound();
+  const { error, domain } = await readDomain(request);
+  if (error) return error;
 
   const { count, error: countError } = await supabaseAdmin
     .from('blocked_websites')
     .select('id', { count: 'exact', head: true })
-    .eq('profile_id', profile.id);
+    .eq('profile_id', device.profileId);
 
   if (countError) {
     console.error('Failed to count blocked websites:', countError);
@@ -69,7 +51,7 @@ export async function POST(request) {
 
   const { data: site, error: insertError } = await supabaseAdmin
     .from('blocked_websites')
-    .upsert({ profile_id: profile.id, domain }, { onConflict: 'profile_id,domain' })
+    .upsert({ profile_id: device.profileId, domain }, { onConflict: 'profile_id,domain' })
     .select('id, domain')
     .single();
 
@@ -82,16 +64,16 @@ export async function POST(request) {
 }
 
 export async function DELETE(request) {
-  const { error, userId, domain } = await readMutation(request);
-  if (error) return error;
+  const { device, error: authError } = await requireDevice(request, 'sites:write');
+  if (authError) return authError;
 
-  const { data: profile, error: profileError } = await findProfile(userId);
-  if (profileError || !profile) return profileNotFound();
+  const { error, domain } = await readDomain(request);
+  if (error) return error;
 
   const { error: deleteError } = await supabaseAdmin
     .from('blocked_websites')
     .delete()
-    .eq('profile_id', profile.id)
+    .eq('profile_id', device.profileId)
     .eq('domain', domain);
 
   if (deleteError) {

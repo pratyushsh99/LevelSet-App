@@ -1,15 +1,15 @@
 import { NextResponse } from 'next/server';
+import { requireDevice } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabaseAdmin';
-import { badRequest, INVALID_USER_ID, isValidUserId } from '../../../lib/validate';
 
 export async function GET(request) {
-  const userId = new URL(request.url).searchParams.get('userId');
-  if (!isValidUserId(userId)) return badRequest(INVALID_USER_ID);
+  const { device, error: authError } = await requireDevice(request, 'status:read');
+  if (authError) return authError;
 
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
-    .select('id, remaining_seconds')
-    .ilike('user_id', userId)
+    .select('remaining_seconds')
+    .eq('id', device.profileId)
     .single();
 
   if (profileError || !profile) {
@@ -19,7 +19,7 @@ export async function GET(request) {
   const { data: blockedSites, error: sitesError } = await supabaseAdmin
     .from('blocked_websites')
     .select('domain')
-    .eq('profile_id', profile.id);
+    .eq('profile_id', device.profileId);
 
   if (sitesError) {
     console.error('Failed to load blocked websites:', sitesError);

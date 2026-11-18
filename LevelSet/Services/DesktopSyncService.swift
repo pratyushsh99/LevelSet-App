@@ -3,106 +3,140 @@ import Foundation
 enum DesktopSyncService {
     static let baseURL = URL(string: "https://level-set-zeta.vercel.app")!
 
-    private static let deviceUserIdKey = "com.pratyushsharma.levelset.desktopSync.deviceUserId"
-    private static let pairedKey = "com.pratyushsharma.levelset.desktopSync.paired"
+    private static let deviceTokenAccount = "desktopSync.deviceToken"
+    private static let pendingDeletionAccount = "desktopSync.pendingAccountDeletion"
 
-    static var deviceUserId: String {
-        if let existing = UserDefaults.standard.string(forKey: deviceUserIdKey) {
-            return existing
-        }
-        let generated = UUID().uuidString
-        UserDefaults.standard.set(generated, forKey: deviceUserIdKey)
-        return generated
+    private static var deviceToken: String? {
+        KeychainStore.get(account: deviceTokenAccount)
     }
 
     static var isPaired: Bool {
-        get { UserDefaults.standard.bool(forKey: pairedKey) }
-        set { UserDefaults.standard.set(newValue, forKey: pairedKey) }
+        deviceToken != nil
+    }
+
+    static func removeLegacyCredentials() {
+        let defaults = UserDefaults.standard
+        defaults.removeObject(forKey: "com.pratyushsharma.levelset.desktopSync.deviceUserId")
+        defaults.removeObject(forKey: "com.pratyushsharma.levelset.desktopSync.paired")
     }
 
     enum PairingError: Error {
         case invalidCode
         case codeExpired
+        case alreadyUsed
         case server(String)
     }
 
     private struct PairingConfirmRequest: Encodable {
-        let pairingCode: String
-        let deviceUserId: String
+        let secret: String
+    }
+
+    private struct PairingConfirmResponse: Decodable {
+        let paired: Bool
+        let deviceToken: String?
     }
 
     private struct SyncBalanceRequest: Encodable {
-        let userId: String
         let remainingSeconds: Int
     }
 
     private struct SyncStatsRequest: Encodable {
-        let userId: String
         let xp: Int
         let currentStreak: Int
         let progress: UserProgress
         let history: [ChallengeCompletion]
     }
 
-    static func confirmPairing(code: String) async throws {
-        var request = URLRequest(url: baseURL.appending(path: "api/pair/confirm"))
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONEncoder().encode(
-            PairingConfirmRequest(pairingCode: code, deviceUserId: deviceUserId)
-        )
+    private static func request(_ path: String, method: String, token: String?, body: Data? = nil) -> URLRequest {
+        var request = URLRequest(url: baseURL.appending(path: path))
+        request.httpMethod = method
+        if let token {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        if let body {
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = body
+        }
+        return request
+    }
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+    static func confirmPairing(secret: String) async throws {
+        let body = try JSONEncoder().encode(PairingConfirmRequest(secret: secret))
+        let token = deviceToken
+        let (data, response) = try await URLSession.shared.data(
+            for: request("api/pair/confirm", method: "POST", token: token, body: body)
+        )
         guard let http = response as? HTTPURLResponse else {
             throw PairingError.server("No response from server.")
         }
 
         switch http.statusCode {
         case 200:
-            isPaired = true
+            let decoded = try JSONDecoder().decode(PairingConfirmResponse.self, from: data)
+            if let newToken = decoded.deviceToken {
+                guard KeychainStore.set(newToken, account: deviceTokenAccount) else {
+                    throw PairingError.server("Couldn't save the device key.")
+                }
+            }
+        case 401 where token != nil:
+            KeychainStore.delete(account: deviceTokenAccount)
+            try await confirmPairing(secret: secret)
         case 404:
             throw PairingError.invalidCode
+        case 409:
+            throw PairingError.alreadyUsed
         case 410:
             throw PairingError.codeExpired
         default:
-            let message = String(data: data, encoding: .utf8) ?? "Unknown error"
-            throw PairingError.server(message)
+            throw PairingError.server(String(data: data, encoding: .utf8) ?? "Unknown error")
+        }
+    }
+
+    private static func send(_ path: String, body: Data?) {
+        guard let token = deviceToken else { return }
+        let request = request(path, method: "POST", token: token, body: body)
+
+        Task.detached(priority: .background) {
+            guard let (_, response) = try? await URLSession.shared.data(for: request),
+                  let http = response as? HTTPURLResponse else { return }
+            if http.statusCode == 401 {
+                KeychainStore.delete(account: deviceTokenAccount)
+            }
         }
     }
 
     static func syncBalance(secondsRemaining: Int) {
-        guard isPaired else { return }
-
-        Task.detached(priority: .background) {
-            var request = URLRequest(url: baseURL.appending(path: "api/sync-balance"))
-            request.httpMethod = "POST"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.httpBody = try? JSONEncoder().encode(
-                SyncBalanceRequest(userId: deviceUserId, remainingSeconds: secondsRemaining)
-            )
-
-            _ = try? await URLSession.shared.data(for: request)
-        }
+        send("api/sync-balance", body: try? JSONEncoder().encode(
+            SyncBalanceRequest(remainingSeconds: secondsRemaining)
+        ))
     }
 
     static func syncStats(progress: UserProgress, history: [ChallengeCompletion]) {
-        guard isPaired else { return }
-
-        Task.detached(priority: .background) {
-            var request = URLRequest(url: baseURL.appending(path: "api/sync-stats"))
-            request.httpMethod = "POST"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.httpBody = try? JSONEncoder().encode(
-                SyncStatsRequest(
-                    userId: deviceUserId,
-                    xp: progress.xp,
-                    currentStreak: progress.currentStreak,
-                    progress: progress,
-                    history: history
-                )
+        send("api/sync-stats", body: try? JSONEncoder().encode(
+            SyncStatsRequest(
+                xp: progress.xp,
+                currentStreak: progress.currentStreak,
+                progress: progress,
+                history: history
             )
+        ))
+    }
 
-            _ = try? await URLSession.shared.data(for: request)
+    static func deleteRemoteAccount() {
+        guard let token = deviceToken else { return }
+        KeychainStore.set(token, account: pendingDeletionAccount)
+        KeychainStore.delete(account: deviceTokenAccount)
+        Task { await retryPendingAccountDeletion() }
+    }
+
+    static func retryPendingAccountDeletion() async {
+        guard let token = KeychainStore.get(account: pendingDeletionAccount) else { return }
+        guard let (_, response) = try? await URLSession.shared.data(
+            for: request("api/account", method: "DELETE", token: token)
+        ), let http = response as? HTTPURLResponse else { return }
+
+        if http.statusCode == 200 || http.statusCode == 401 {
+            KeychainStore.delete(account: pendingDeletionAccount)
         }
     }
 }
