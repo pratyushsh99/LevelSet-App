@@ -2,36 +2,26 @@ import CoreGraphics
 import Foundation
 import Vision
 
-/// Per-frame inputs to the push-up phase model.
-///
-/// The app and the trainer in `Training/` compile this same file, so the features a
-/// model sees on device are exactly the ones it was trained on. Bump `version` whenever
-/// a feature changes: bundled models trained on another version are ignored.
 struct PushUpFeatures {
     static let version = 1
 
-    // Joint geometry. Lengths are in torso lengths, angles are fractions of 180°.
     var elbowAngle = 0.0
     var elbowVisible = 0.0
     var backDeviation = 0.0
     var backVisible = 0.0
-    /// Hip distance from the shoulder–ankle line: positive when piked, negative when sagging.
     var hipOffset = 0.0
-    /// 0 when the body is horizontal, 1 when upright.
     var bodyIncline = 0.0
     var lowerJointIsAnkle = 0.0
     var shoulderAboveWrist = 0.0
     var hipAboveWrist = 0.0
     var bodySize = 0.0
 
-    // Joint positions relative to the shoulder midpoint, mirrored so the feet are always on +x.
     var elbowX = 0.0, elbowY = 0.0
     var wristX = 0.0, wristY = 0.0
     var hipX = 0.0, hipY = 0.0
     var kneeX = 0.0, kneeY = 0.0
     var ankleX = 0.0, ankleY = 0.0
 
-    // Share of each joint pair that Vision found, 0, 0.5 or 1.
     var shouldersSeen = 0.0
     var elbowsSeen = 0.0
     var wristsSeen = 0.0
@@ -40,7 +30,6 @@ struct PushUpFeatures {
     var anklesSeen = 0.0
     var meanConfidence = 0.0
 
-    // Motion over the last few seconds, which adapts to each person and camera placement.
     var elbowVelocity = 0.0
     var elbowRangePosition = 0.5
     var elbowRange = 0.0
@@ -72,8 +61,6 @@ struct PushUpFeatures {
     var values: [Double] { Self.columns.map { self[keyPath: $0.value] } }
 }
 
-/// Turns a stream of pose frames into `PushUpFeatures`. Keeps a few seconds of history
-/// for the motion features, so use one extractor per session and feed it every frame.
 final class PushUpFeatureExtractor {
     private typealias Joint = VNHumanBodyPoseObservation.JointName
 
@@ -112,7 +99,6 @@ final class PushUpFeatureExtractor {
         facing = 1
     }
 
-    /// Returns nil when too little of the body is visible to describe the pose.
     func features(for frame: PoseFrame?, at time: TimeInterval) -> PushUpFeatures? {
         history.removeAll { time - $0.time > historyWindow }
         guard let frame, let shoulder = midpoint(frame, sides.map(\.shoulder)) else { return nil }
@@ -253,8 +239,6 @@ final class PushUpFeatureExtractor {
     }
 }
 
-/// Inputs to the rep model: a summary of every frame between leaving the top of a
-/// push-up and returning to it.
 struct PushUpRepSummary {
     static let names = [
         "duration",

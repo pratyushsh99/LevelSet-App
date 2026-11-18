@@ -2,8 +2,6 @@ import AVFoundation
 import Combine
 import Foundation
 
-/// Records pose keypoints (never video) for training the push-up models in `Training/`.
-/// Frames come from the same camera and detector pipeline the live counter uses.
 @MainActor
 final class PushUpTrainingRecorder: ObservableObject {
     @Published private(set) var trackingStatus: CameraTrackingStatus = .starting
@@ -65,7 +63,6 @@ final class PushUpTrainingRecorder: ObservableObject {
         isRecording = true
     }
 
-    /// Stops collecting frames. Call `save` to keep them or `beginRecording` to start over.
     func endRecording() {
         isRecording = false
     }

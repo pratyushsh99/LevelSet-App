@@ -1,6 +1,5 @@
 import SwiftUI
 
-/// Debug tool for collecting labelled push-up sessions. See `Training/README.md`.
 struct PushUpTrainingRecorderView: View {
     @StateObject private var recorder = PushUpTrainingRecorder()
     @Environment(\.dismiss) private var dismiss

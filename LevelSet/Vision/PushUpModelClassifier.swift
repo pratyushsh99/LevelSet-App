@@ -7,7 +7,6 @@ protocol PushUpRepTracking: AnyObject, Sendable {
 
 extension PushUpClassifier: PushUpRepTracking {}
 
-/// Labels the phase model predicts for each frame.
 enum PushUpPhaseLabel: String, CaseIterable, Sendable {
     case up
     case down
@@ -15,9 +14,6 @@ enum PushUpPhaseLabel: String, CaseIterable, Sendable {
     case none
 }
 
-/// Counts push-ups with the models trained by `Training/train.sh`: a phase model says
-/// where each frame sits in the movement, and a rep model judges every completed
-/// up → down → up cycle. Rep verdicts use `PushUpRecordingLabel` raw values.
 final class PushUpModelClassifier: PushUpRepTracking, @unchecked Sendable {
     static let phaseModelName = "PushUpPhaseModel"
     static let repModelName = "PushUpRepModel"
@@ -36,7 +32,6 @@ final class PushUpModelClassifier: PushUpRepTracking, @unchecked Sendable {
         return (phase, loadBundledModel(named: repModelName))
     }()
 
-    /// A classifier backed by the models in the app bundle, or nil if none were trained yet.
     static func bundled() -> PushUpModelClassifier? {
         bundledModels.map { PushUpModelClassifier(phaseModel: $0.phase, repModel: $0.rep) }
     }
@@ -176,7 +171,6 @@ final class PushUpModelClassifier: PushUpRepTracking, @unchecked Sendable {
         }
     }
 
-    /// Without a rep model every full cycle counts, as long as the phase model saw it.
     private func verdict(for summary: PushUpRepSummary) -> PushUpRecordingLabel {
         guard
             let repModel,
