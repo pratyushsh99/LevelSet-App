@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 struct LinkDesktopView: View {
     let onPaired: () -> Void
@@ -16,7 +15,8 @@ struct LinkDesktopView: View {
 
     private struct PairingPayload: Decodable {
         let type: String
-        let code: String
+        let v: Int
+        let secret: String
     }
 
     var body: some View {
@@ -28,15 +28,12 @@ struct LinkDesktopView: View {
                         .ignoresSafeArea()
                     scanningOverlay
                 case .success:
-                    VStack(spacing: 12) {
-                        resultView(
-                            systemImage: "checkmark.circle.fill",
-                            tint: Theme.accent,
-                            title: "Desktop linked!",
-                            message: "Your earned screen time now syncs to that browser."
-                        )
-                        deviceIdCopyRow
-                    }
+                    resultView(
+                        systemImage: "checkmark.circle.fill",
+                        tint: Theme.accent,
+                        title: "Desktop linked!",
+                        message: "Your earned screen time now syncs to that browser. To use the browser extension, copy its key from the page on your computer."
+                    )
                 case .failure(let message):
                     resultView(
                         systemImage: "xmark.circle.fill",
@@ -71,31 +68,6 @@ struct LinkDesktopView: View {
         }
     }
 
-    private var deviceIdCopyRow: some View {
-        VStack(spacing: 6) {
-            Text("Paste this into the browser extension's settings:")
-                .font(Theme.body(12))
-                .foregroundStyle(Theme.textFaint)
-            Button {
-                UIPasteboard.general.string = DesktopSyncService.deviceUserId
-            } label: {
-                HStack(spacing: 8) {
-                    Text(DesktopSyncService.deviceUserId)
-                        .font(Theme.mono(12, .medium))
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                    Image(systemName: "doc.on.doc")
-                        .font(Theme.body(12))
-                }
-                .foregroundStyle(Theme.accent)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(Theme.surfaceTint.opacity(0.6), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-            }
-        }
-        .padding(.horizontal, 32)
-    }
-
     private func resultView(systemImage: String, tint: Color, title: String, message: String) -> some View {
         VStack(spacing: 16) {
             Image(systemName: systemImage)
@@ -126,20 +98,22 @@ struct LinkDesktopView: View {
         guard let data = value.data(using: .utf8),
               let payload = try? JSONDecoder().decode(PairingPayload.self, from: data),
               payload.type == "levelset-pairing" else {
-            status = .failure("That QR code wasn't a LevelSet pairing code.")
+            status = .failure("That QR code wasn't a LevelSet pairing code. If your computer shows an older page, refresh it and try again.")
             isProcessing = false
             return
         }
 
         Task {
             do {
-                try await DesktopSyncService.confirmPairing(code: payload.code)
+                try await DesktopSyncService.confirmPairing(secret: payload.secret)
                 status = .success
                 onPaired()
             } catch DesktopSyncService.PairingError.codeExpired {
                 status = .failure("That code expired. Refresh the /pair page and try again.")
             } catch DesktopSyncService.PairingError.invalidCode {
                 status = .failure("That pairing code wasn't recognized.")
+            } catch DesktopSyncService.PairingError.alreadyUsed {
+                status = .failure("That code was already used. Refresh the /pair page and try again.")
             } catch {
                 status = .failure("Something went wrong. Check your connection and try again.")
             }

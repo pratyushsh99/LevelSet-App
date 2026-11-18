@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LevelSet Screen Time Guard",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Blocks restricted websites once your LevelSet earned screen-time balance runs out.",
   "background": {
     "service_worker": "background.js",

@@ -31,6 +31,7 @@ struct DeleteAccountWarningView: View {
                 Label("Your XP, streak, and challenge history", systemImage: "chart.bar")
                 Label("Your saved apps-to-limit selection", systemImage: "apps.iphone")
                 Label("Your name and notification preference", systemImage: "person.crop.circle")
+                Label("Your synced data on the LevelSet web service, and every linked computer's access", systemImage: "desktopcomputer")
             }
             .foregroundStyle(.primary)
 
@@ -147,7 +148,7 @@ struct DeleteAccountPhraseStepView: View {
             Button("Delete Permanently", role: .destructive, action: onConfirmed)
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Your XP, streaks, challenge history, and app selection will be permanently erased.")
+            Text("Your XP, streaks, challenge history, app selection, and synced web data will be permanently erased.")
         }
     }
 }

@@ -2,8 +2,6 @@ import CoreGraphics
 import Foundation
 import Vision
 
-/// What the person was doing for the whole recording. One label per session keeps
-/// labelling hands-free: the trainer derives per-frame phases from the motion itself.
 enum PushUpRecordingLabel: String, Codable, CaseIterable, Sendable {
     case good
     case shallow
@@ -41,11 +39,9 @@ struct PushUpRecording: Codable, Sendable {
     static let currentVersion = 1
 
     struct Frame: Codable, Sendable {
-        /// Seconds since the recording started.
         let t: Double
         let width: Double
         let height: Double
-        /// Vision joint key -> [x, y, confidence], in Vision's normalized coordinates.
         let joints: [String: [Double]]
     }
 
@@ -71,7 +67,6 @@ extension PushUpRecording.Frame {
         self.joints = joints
     }
 
-    /// The frame as the live pipeline would have seen it, or nil when no person was detected.
     var poseFrame: PoseFrame? {
         guard !joints.isEmpty else { return nil }
         var points: [PoseFrame.Joint: CGPoint] = [:]

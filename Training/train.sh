@@ -1,6 +1,4 @@
 #!/bin/sh
-# Trains the push-up models from in-app recordings and writes them where the app bundles them.
-# usage: Training/train.sh [recordings-dir] [output-dir]
 set -eu
 cd "$(dirname "$0")/.."
 

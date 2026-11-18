@@ -1,49 +1,42 @@
 import { NextResponse } from 'next/server';
-import { randomBytes, randomUUID } from 'crypto';
+import { hashSecret, newSecret } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabaseAdmin';
 
 const PAIRING_TTL_MS = 10 * 60 * 1000;
-const ABANDONED_AFTER_MS = 60 * 60 * 1000;
 
-function generatePairingCode() {
-  return randomBytes(4).toString('hex').toUpperCase();
-}
-
-async function removeAbandonedPairings() {
-  const cutoff = new Date(Date.now() - ABANDONED_AFTER_MS).toISOString();
+async function removeExpiredSessions() {
   const { error } = await supabaseAdmin
-    .from('profiles')
+    .from('pairing_sessions')
     .delete()
-    .like('user_id', 'pending-%')
-    .is('resolved_user_id', null)
-    .lt('pairing_expires_at', cutoff);
-  if (error) console.error('Failed to clean up abandoned pairings:', error);
+    .lt('expires_at', new Date().toISOString());
+  if (error) console.error('Failed to clean up expired pairing sessions:', error);
 }
 
 export async function POST() {
-  await removeAbandonedPairings();
+  await removeExpiredSessions();
 
-  const pairingExpiresAt = new Date(Date.now() + PAIRING_TTL_MS).toISOString();
+  const qrSecret = newSecret();
+  const pollSecret = newSecret();
 
   const { data, error } = await supabaseAdmin
-    .from('profiles')
+    .from('pairing_sessions')
     .insert({
-      user_id: `pending-${randomUUID()}`,
-      remaining_seconds: 0,
-      pairing_code: generatePairingCode(),
-      pairing_expires_at: pairingExpiresAt,
+      qr_secret_hash: hashSecret(qrSecret),
+      poll_secret_hash: hashSecret(pollSecret),
+      expires_at: new Date(Date.now() + PAIRING_TTL_MS).toISOString(),
     })
-    .select('id, pairing_code, pairing_expires_at')
+    .select('id, expires_at')
     .single();
 
   if (error) {
-    console.error('Failed to create pairing code:', error);
-    return NextResponse.json({ error: 'Could not create pairing code.' }, { status: 500 });
+    console.error('Failed to create pairing session:', error);
+    return NextResponse.json({ error: 'Could not start pairing.' }, { status: 500 });
   }
 
   return NextResponse.json({
-    profileId: data.id,
-    pairingCode: data.pairing_code,
-    expiresAt: data.pairing_expires_at,
+    sessionId: data.id,
+    qrSecret,
+    pollSecret,
+    expiresAt: data.expires_at,
   });
 }

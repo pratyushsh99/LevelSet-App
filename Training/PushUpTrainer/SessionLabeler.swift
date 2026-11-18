@@ -1,7 +1,5 @@
 import Foundation
 
-/// A recording replayed through the app's feature extractor, with per-frame phase labels
-/// and rep boundaries derived from the motion.
 struct LabeledSession {
     struct Rep {
         let start: Int
@@ -12,16 +10,13 @@ struct LabeledSession {
     let recording: PushUpRecording
     let times: [Double]
     let features: [PushUpFeatures?]
-    /// nil where the frame is too ambiguous to train on.
     let phaseLabels: [PushUpPhaseLabel?]
     let reps: [Rep]
 
-    /// Push-up sessions are only trusted when the detected reps match what the person reported.
     var isConsistent: Bool {
         !recording.label.countsReps || reps.count == recording.reportedReps
     }
 
-    /// What a perfect counter would report for this session.
     var expectedCount: Int {
         recording.label == .good ? recording.reportedReps : 0
     }
@@ -35,10 +30,8 @@ struct LabeledSession {
 }
 
 enum SessionLabeler {
-    /// Normalised depth above this is the top of a push-up, below `downThreshold` the bottom.
     static let upThreshold = 0.7
     static let downThreshold = 0.3
-    /// Frames where the body is more upright than this are not in push-up position.
     static let uprightIncline = 0.6
     static let smoothingRadius = 0.15
     static let contextAroundReps = 0.5
@@ -71,8 +64,6 @@ enum SessionLabeler {
                               phaseLabels: labels, reps: reps)
     }
 
-    /// 1 at the top of the movement, 0 at the bottom, scaled to this session's own range so
-    /// camera distance and angle don't matter. Averages shoulder height and elbow angle.
     private static func normalizedDepth(_ features: [PushUpFeatures?], excluding upright: [Bool]) -> [Double?] {
         let signals: [[Double?]] = [
             features.indices.map { upright[$0] || (features[$0]?.wristsSeen ?? 0) == 0 ? nil : features[$0]?.shoulderAboveWrist },
@@ -114,8 +105,6 @@ enum SessionLabeler {
         }
     }
 
-    /// A rep runs from the last frame at the top, down past the bottom threshold, to the
-    /// first frame back at the top.
     private static func detectReps(_ depth: [Double?]) -> [LabeledSession.Rep] {
         var reps: [LabeledSession.Rep] = []
         var lastTop: Int?

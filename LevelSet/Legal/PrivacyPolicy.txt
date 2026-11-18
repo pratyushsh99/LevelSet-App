@@ -1,6 +1,6 @@
 Privacy Policy
 
-Effective date: October 3, 2026
+Effective date: November 18, 2026
 
 This policy explains what information LevelSet collects and how it's used. It covers the LevelSet iPhone app, the LevelSet web dashboard and the LevelSet Chrome extension.
 
@@ -15,22 +15,22 @@ LevelSet stores the following on your device: your name (if you enter one), dail
 
 4. Information shared when you link a computer
 Linking a computer is optional. If you do it, LevelSet sends the following to its web service, which is hosted on Vercel and stores data in a Supabase database:
-- a random device id created by the app (not your name, email or Apple ID)
+- a random device key issued by the web service (not your name, email or Apple ID)
 - your remaining screen-time balance
 - your XP, streak and challenge history
 - your app settings, including your name if you entered one and the names of apps you chose to limit
 - the website domains you choose to restrict on your computer
 
-The Chrome extension sends only your device id and the time spent on restricted sites. It does not record your browsing history or the pages you visit.
+The Chrome extension sends only its own key and the time spent on restricted sites. It does not record your browsing history or the pages you visit.
 
 5. How information is used
 Linked information is used only to sync your screen-time balance and progress between your phone and your computer. It is never sold, shared for advertising, or used for any other purpose.
 
 6. Security
-Only the LevelSet server can access the database. Your phone, browser and extension never hold a database key, and all connections use HTTPS. No system is perfectly secure, so keep your device id private.
+Only the LevelSet server can access the database. Your phone, browser and extension never hold a database key, and all connections use HTTPS. Each linked device gets its own random key; the server stores only a one-way hash of it, and your phone keeps its key in the iOS Keychain. Your computer's key can spend earned time but can't add any. No system is perfectly secure, so keep the extension key private.
 
 7. Deleting your information
-Deleting your account in the app's Profile screen removes your data from your phone. To delete the linked copy stored on the web service, email pratyushksharma99@gmail.com with your device id, shown on the Link Desktop screen in the app, and it will be removed.
+Deleting your account in the app's Profile screen removes your data from your phone and deletes the linked copy stored on the web service, including your balance, progress, restricted websites and every linked computer's access. If your phone is offline at the time, the web copy is deleted the next time the app opens with a connection. You can also ask for deletion by emailing the address below.
 
 8. Children
 LevelSet is not directed at children under 13, and it does not knowingly collect personal information from them. If you believe a child under 13 has linked a computer, contact the email below and the linked data will be deleted.

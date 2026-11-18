@@ -1,24 +1,14 @@
 import { NextResponse } from 'next/server';
 
-const USER_ID_PATTERN = /^[A-Za-z0-9-]{8,64}$/;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const PAIRING_CODE_PATTERN = /^[A-F0-9]{8}$/;
 const DOMAIN_PATTERN = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
 
 export const MAX_BALANCE_SECONDS = 7 * 24 * 60 * 60;
 export const MAX_STATS_BYTES = 64 * 1024;
 export const MAX_BLOCKED_SITES = 200;
 
-export function isValidUserId(value) {
-  return typeof value === 'string' && USER_ID_PATTERN.test(value);
-}
-
-export function isValidProfileId(value) {
+export function isValidUuid(value) {
   return typeof value === 'string' && UUID_PATTERN.test(value);
-}
-
-export function isValidPairingCode(value) {
-  return typeof value === 'string' && PAIRING_CODE_PATTERN.test(value);
 }
 
 export function normalizeDomain(raw) {
@@ -37,6 +27,8 @@ export function isBoundedInteger(value, min, max) {
 }
 
 export async function readJson(request) {
+  const contentType = request.headers.get('content-type') || '';
+  if (!/^application\/json\b/i.test(contentType)) return null;
   try {
     const body = await request.json();
     return body && typeof body === 'object' && !Array.isArray(body) ? body : null;
@@ -49,4 +41,4 @@ export function badRequest(message) {
   return NextResponse.json({ error: message }, { status: 400 });
 }
 
-export const INVALID_USER_ID = 'userId must be 8-64 letters, numbers or hyphens.';
+export const INVALID_JSON = 'Send a JSON object with Content-Type: application/json.';

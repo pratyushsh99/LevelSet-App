@@ -1,19 +1,22 @@
 import { NextResponse } from 'next/server';
+import { requireDevice } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabaseAdmin';
-import { badRequest, INVALID_USER_ID, isBoundedInteger, isValidUserId, readJson } from '../../../lib/validate';
+import { badRequest, INVALID_JSON, isBoundedInteger, readJson } from '../../../lib/validate';
 
 export async function POST(request) {
-  const body = await readJson(request);
-  if (!body) return badRequest('Invalid JSON body.');
+  const { device, error: authError } = await requireDevice(request, 'time:deduct');
+  if (authError) return authError;
 
-  const { userId, seconds = 5 } = body;
-  if (!isValidUserId(userId)) return badRequest(INVALID_USER_ID);
+  const body = await readJson(request);
+  if (!body) return badRequest(INVALID_JSON);
+
+  const { seconds = 5 } = body;
   if (!isBoundedInteger(seconds, 1, 60)) return badRequest('seconds must be a whole number between 1 and 60.');
 
   const { data: profile, error: fetchError } = await supabaseAdmin
     .from('profiles')
-    .select('id, remaining_seconds')
-    .ilike('user_id', userId)
+    .select('remaining_seconds')
+    .eq('id', device.profileId)
     .single();
 
   if (fetchError || !profile) {
@@ -25,7 +28,7 @@ export async function POST(request) {
   const { data: updated, error: updateError } = await supabaseAdmin
     .from('profiles')
     .update({ remaining_seconds: newBalance })
-    .eq('id', profile.id)
+    .eq('id', device.profileId)
     .select('remaining_seconds')
     .single();
 

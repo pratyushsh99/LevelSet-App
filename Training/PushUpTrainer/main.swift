@@ -3,9 +3,6 @@ import CreateML
 import Foundation
 import TabularData
 
-// Trains the push-up phase and rep models from recordings made with the in-app recorder.
-// Run through Training/train.sh, which compiles this together with the app's feature code.
-
 struct TrainedModels {
     let phase: MLBoostedTreeClassifier
     let rep: MLBoostedTreeClassifier?
@@ -45,8 +42,6 @@ func loadSessions(from directory: URL) -> [LabeledSession] {
     }
 }
 
-/// Holds out whole people when there are enough of them, otherwise whole sessions, so
-/// validation frames never come from a session the model trained on.
 func validationSplit(_ sessions: [LabeledSession]) -> (training: [LabeledSession], validation: [LabeledSession]) {
     let participants = Set(sessions.map { $0.recording.participant.lowercased() }).sorted()
     if participants.count >= 3 {
@@ -128,8 +123,6 @@ func replay(_ session: LabeledSession, through classifier: PushUpRepTracking) ->
     return count
 }
 
-/// The number that matters: how many reps each counter credits on sessions it never saw,
-/// compared with what the person actually did. Uses reported counts, not derived labels.
 func compareCounters(_ models: TrainedModels, on sessions: [LabeledSession]) {
     print("\nRep counts on held-out sessions (expected = good reps the person reported)")
     print("  session".padding(toLength: 34, withPad: " ", startingAt: 0) + "expected  model  heuristic")

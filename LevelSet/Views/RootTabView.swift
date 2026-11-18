@@ -47,6 +47,10 @@ struct RootTabView: View {
                 persistAndSync()
             }
         }
+        .task {
+            DesktopSyncService.removeLegacyCredentials()
+            await DesktopSyncService.retryPendingAccountDeletion()
+        }
     }
 
     private var mainTabs: some View {
@@ -167,6 +171,7 @@ struct RootTabView: View {
     }
 
     private func resetEverything() {
+        DesktopSyncService.deleteRemoteAccount()
         history = []
         hasWarnedLowTime = false
         LiveActivityService.end()
